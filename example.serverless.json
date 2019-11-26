@@ -1,0 +1,28 @@
+{
+    "functions": {
+        "hello": {
+            "events": [
+                {
+                    "http": {
+                        "method": "post",
+                        "path": "hello"
+                    }
+                }
+            ],
+            "handler": "bin/hello"
+        }
+    },
+    "package": {
+        "exclude": [
+            "./**"
+        ],
+        "include": [
+            "./bin/**"
+        ]
+    },
+    "provider": {
+        "name": "aws",
+        "runtime": "go1.x"
+    },
+    "service": "myservice"
+}

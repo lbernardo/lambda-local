@@ -1,0 +1,25 @@
+service: myservice
+
+provider:
+  name: aws
+  runtime: go1.x
+
+package:
+ exclude:
+   - ./**
+ include:
+   - ./bin/**
+
+functions:
+  hello:
+    handler: bin/hello
+    events:
+      - http:
+          path: hello
+          method: post
+  world:
+    handler: bin/world
+    events:
+      - http:
+          path: world
+          method: get
