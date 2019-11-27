@@ -1,2 +1,5 @@
 build:
-	go build -o lam
+	go build
+install:
+	go install
+
