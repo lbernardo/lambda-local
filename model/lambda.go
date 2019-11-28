@@ -8,6 +8,10 @@ type LambdaContent struct {
 	HostConfig HostConfig `json:"HostConfig"`
 }
 
+type CreateResponse struct {
+	ID string `json:"Id"`
+}
+
 type HostConfig struct {
 	Binds []string `json:"Binds"`
 }
