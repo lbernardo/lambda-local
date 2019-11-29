@@ -2,59 +2,70 @@ package lambda
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
-	"fmt"
-	"os"
-	"os/exec"
+	"io"
+	"strings"
 
+	"github.com/docker/docker/api/types"
+	"github.com/docker/docker/api/types/container"
+	"github.com/docker/docker/client"
 	"github.com/lbernardo/lambda-local/model"
 )
 
 func ExecuteDockerLambda(volume string, handler string, runtime string) model.Result {
 	var result model.Result
-	var out bytes.Buffer
-	var out2 bytes.Buffer
+	var output bytes.Buffer
 
 	imageName := "lambci/lambda:" + runtime
-	var content model.LambdaContent
-	var responseCreate model.CreateResponse
 
-	content.Image = imageName
-	content.Cmd = []string{handler}
-	content.HostConfig.Binds = []string{volume + ":/var/task"}
+	ctx := context.Background()
+	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
+	if err != nil {
+		panic(err)
+	}
 
-	body, _ := content.Marshal()
+	resp, err := cli.ContainerCreate(ctx, &container.Config{
+		Image: imageName,
+		Cmd:   []string{handler},
+	}, &container.HostConfig{
+		Binds: []string{volume + ":/var/task"},
+	}, nil, "")
+	if err != nil {
+		panic(err)
+	}
 
-	cmd := exec.Command("curl", "--unix-socket", "/var/run/docker.sock", "-H", "Content-Type: application/json", "-d", string(body), "-X", "POST", "http:/v1.24/containers/create")
-	cmd.Stdout = &out
-	cmd.Stderr = os.Stderr
-	cmd.Run()
+	err = cli.ContainerStart(ctx, resp.ID, types.ContainerStartOptions{})
 
-	json.Unmarshal(out.Bytes(), &responseCreate)
+	if err != nil {
+		panic(err)
+	}
 
-	cmd = exec.Command("curl", "--unix-socket", "/var/run/docker.sock", "-X", "POST", "http:/v1.24/containers/"+responseCreate.ID+"/start")
-	cmd.Run()
+	statusCh, errCh := cli.ContainerWait(ctx, resp.ID, container.WaitConditionNotRunning)
+	select {
+	case err := <-errCh:
+		if err != nil {
+			panic(err)
+		}
+	case <-statusCh:
+	}
 
-	cmd = exec.Command("curl", "--unix-socket", "/var/run/docker.sock", "-s", "-o", "-", "http:/v1.24/containers/"+responseCreate.ID+"/logs?stdout=1")
-	cmd.Stdout = &out2
-	cmd.Stderr = os.Stderr
-	cmd.Run()
+	reader, err := cli.ContainerLogs(ctx, resp.ID, types.ContainerLogsOptions{
+		ShowStdout: true,
+	})
+	if err != nil {
+		panic(err)
+	}
 
-	json.Unmarshal(out2.Bytes(), &result)
-	fmt.Println(out2.String())
-	fmt.Println(result)
+	io.Copy(&output, reader)
 
-	// cmd := exec.Command("docker", "run", "--rm", "-v", volume+":/var/task", "lambci/lambda:"+runtime, handler)
-	// cmd.Stdout = &out
-	// cmd.Stderr = os.Stderr
+	str := output.String()
+	str = strings.ReplaceAll(str, "\x01", "")
+	str = strings.ReplaceAll(str, "\x00", "")
+	str = strings.ReplaceAll(str, "J{", "{")
+	str = strings.ReplaceAll(str, "\n", "")
 
-	// err := cmd.Run()
-
-	// if err != nil {
-	// 	log.Fatal(err)
-	// }
-
-	// json.Unmarshal(out.Bytes(), &result)
+	json.Unmarshal([]byte(str), &result)
 
 	return result
 }
