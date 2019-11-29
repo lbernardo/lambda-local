@@ -3,8 +3,10 @@ package lambda
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
@@ -53,14 +55,23 @@ func ExecuteDockerLambda(volume string, handler string, runtime string) model.Re
 	out, err := cli.ContainerLogs(ctx, resp.ID, types.ContainerLogsOptions{
 		ShowStdout: true,
 	})
-
 	if err != nil {
 		panic(err)
 	}
-
 	io.Copy(&outstr, out)
 
-	fmt.Println(outstr.String())
+	str := outstr.String()
+	str = strings.ReplaceAll(str, "J{", "{")
+	str = strings.ReplaceAll(str, "\n", "")
+	str = strings.ReplaceAll(str, ",", ", ")
+	str = strings.ReplaceAll(str, "\x01", "")
+	var n map[string]interface{}
+	fmt.Println(str)
+	errk := json.Unmarshal([]byte(str), &n)
+	if errk != nil {
+		panic(errk)
+	}
+	fmt.Printf("%+v", n)
 
 	// cmd := exec.Command("docker", "run", "--rm", "-v", volume+":/var/task", "lambci/lambda:"+runtime, handler)
 	// cmd.Stdout = &out
