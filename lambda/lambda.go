@@ -1,9 +1,11 @@
 package lambda
 
 import (
+	"bytes"
 	"context"
-	"fmt"
-	"io/ioutil"
+	"encoding/json"
+	"io"
+	"strings"
 
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
@@ -13,6 +15,7 @@ import (
 
 func ExecuteDockerLambda(volume string, handler string, runtime string) model.Result {
 	var result model.Result
+	var output bytes.Buffer
 
 	imageName := "lambci/lambda:" + runtime
 
@@ -54,9 +57,15 @@ func ExecuteDockerLambda(volume string, handler string, runtime string) model.Re
 		panic(err)
 	}
 
-	p := make([]byte, 8)
-	reader.Read(p)
-	content, _ := ioutil.ReadAll(reader)
-	fmt.Println(string(content))
+	io.Copy(&output, reader)
+
+	str := output.String()
+	str = strings.ReplaceAll(str, "\x01", "")
+	str = strings.ReplaceAll(str, "\x00", "")
+	str = strings.ReplaceAll(str, "J{", "{")
+	str = strings.ReplaceAll(str, "\n", "")
+
+	json.Unmarshal([]byte(str), &result)
+
 	return result
 }
