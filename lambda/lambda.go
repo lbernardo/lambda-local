@@ -1,48 +1,41 @@
 package lambda
 
 import (
-	"bytes"
-	"encoding/json"
-	"fmt"
+	"context"
+	"io"
 	"os"
-	"os/exec"
 
+	"github.com/docker/docker/api/types"
+	"github.com/docker/docker/api/types/container"
+	"github.com/docker/docker/client"
 	"github.com/lbernardo/lambda-local/model"
 )
 
 func ExecuteDockerLambda(volume string, handler string, runtime string) model.Result {
 	var result model.Result
-	var out bytes.Buffer
-	var out2 bytes.Buffer
+	// var out bytes.Buffer
+	// var out2 bytes.Buffer
 
 	imageName := "lambci/lambda:" + runtime
-	var content model.LambdaContent
-	var responseCreate model.CreateResponse
 
-	content.Image = imageName
-	content.Cmd = []string{handler}
-	content.HostConfig.Binds = []string{volume + ":/var/task"}
+	ctx := context.Background()
+	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
+	if err != nil {
+		panic(err)
+	}
 
-	body, _ := content.Marshal()
+	out, err := cli.ImagePull(ctx, imageName, types.ImagePullOptions{})
+	if err != nil {
+		panic(err)
+	}
+	io.Copy(os.Stdout, out)
 
-	cmd := exec.Command("curl", "--unix-socket", "/var/run/docker.sock", "-H", "Content-Type: application/json", "-d", string(body), "-X", "POST", "http:/v1.24/containers/create")
-	cmd.Stdout = &out
-	cmd.Stderr = os.Stderr
-	cmd.Run()
-
-	json.Unmarshal(out.Bytes(), &responseCreate)
-
-	cmd = exec.Command("curl", "--unix-socket", "/var/run/docker.sock", "-X", "POST", "http:/v1.24/containers/"+responseCreate.ID+"/start")
-	cmd.Run()
-
-	cmd = exec.Command("curl", "--unix-socket", "/var/run/docker.sock", "-s", "-o", "-", "http:/v1.24/containers/"+responseCreate.ID+"/logs?stdout=1")
-	cmd.Stdout = &out2
-	cmd.Stderr = os.Stderr
-	cmd.Run()
-
-	json.Unmarshal(out2.Bytes(), &result)
-	fmt.Println(out2.String())
-	fmt.Println(result)
+	resp, err := cli.ContainerCreate(ctx, &container.Config{
+		Image: imageName,
+	}, nil, nil, "")
+	if err != nil {
+		panic(err)
+	}
 
 	// cmd := exec.Command("docker", "run", "--rm", "-v", volume+":/var/task", "lambci/lambda:"+runtime, handler)
 	// cmd.Stdout = &out
