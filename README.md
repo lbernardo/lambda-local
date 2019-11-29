@@ -1,5 +1,5 @@
 # lambda-local
-Execute lambda aws functions local
+Execute lambda aws functions local. Use serverless for development and test local
 
 
 ```bash
@@ -63,6 +63,8 @@ Flags:
       --volume string   Docker volume mount execution [required] [ [ex: --volume $PWD]
       --yaml string     File yaml serverless [default serverless.yml]
 ```
+
+** Usage --volume for define source path of project **
 
 ## Example usage
 
