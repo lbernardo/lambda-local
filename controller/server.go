@@ -55,9 +55,9 @@ func (se *Server) StartConfig() {
 		json.Unmarshal(content, &se.JSON)
 		for _, functions := range se.JSON.Functions {
 			if checkPath(functions.Events[0].HttpEvent, r.URL.RequestURI(), r.Method) {
-				lambda.ExecuteDockerLambda(se.Volume, functions.Handler, se.JSON.Provider["runtime"])
-				w.WriteHeader(202)
-				w.Write([]byte("OL"))
+				result := lambda.ExecuteDockerLambda(se.Volume, functions.Handler, se.JSON.Provider["runtime"])
+				w.WriteHeader(result.StatusCode)
+				w.Write([]byte(result.Body))
 				return
 			}
 		}
