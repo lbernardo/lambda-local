@@ -1,9 +1,10 @@
 package lambda
 
 import (
+	"bytes"
 	"context"
+	"fmt"
 	"io"
-	"os"
 
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
@@ -13,7 +14,7 @@ import (
 
 func ExecuteDockerLambda(volume string, handler string, runtime string) model.Result {
 	var result model.Result
-	// var out bytes.Buffer
+	var outstr bytes.Buffer
 	// var out2 bytes.Buffer
 
 	imageName := "lambci/lambda:" + runtime
@@ -24,18 +25,42 @@ func ExecuteDockerLambda(volume string, handler string, runtime string) model.Re
 		panic(err)
 	}
 
-	out, err := cli.ImagePull(ctx, imageName, types.ImagePullOptions{})
-	if err != nil {
-		panic(err)
-	}
-	io.Copy(os.Stdout, out)
-
 	resp, err := cli.ContainerCreate(ctx, &container.Config{
 		Image: imageName,
-	}, nil, nil, "")
+		Cmd:   []string{handler},
+	}, &container.HostConfig{
+		Binds: []string{volume + ":/var/task"},
+	}, nil, "")
 	if err != nil {
 		panic(err)
 	}
+
+	err = cli.ContainerStart(ctx, resp.ID, types.ContainerStartOptions{})
+
+	if err != nil {
+		panic(err)
+	}
+
+	statusCh, errCh := cli.ContainerWait(ctx, resp.ID, container.WaitConditionNotRunning)
+	select {
+	case err := <-errCh:
+		if err != nil {
+			panic(err)
+		}
+	case <-statusCh:
+	}
+
+	out, err := cli.ContainerLogs(ctx, resp.ID, types.ContainerLogsOptions{
+		ShowStdout: true,
+	})
+
+	if err != nil {
+		panic(err)
+	}
+
+	io.Copy(&outstr, out)
+
+	fmt.Println(outstr.String())
 
 	// cmd := exec.Command("docker", "run", "--rm", "-v", volume+":/var/task", "lambci/lambda:"+runtime, handler)
 	// cmd.Stdout = &out
