@@ -1,10 +1,10 @@
 # lambda-local
-Execute lambda aws functions local. Use serverless for development and test local
+Execute and test local Lambda functions integrate serverless framework
 
 
 ```bash
 $ lambda-local 
-Execute functions lambda aws
+Execute functions lambda aws 
 
 Usage:
   lambda-local [command]
@@ -137,4 +137,30 @@ $ lambda-local start --volume $PWD --port 5000
 ```
 $ curl http://localhost:5000/hello
 > Hello
+```
+
+
+### Docker
+Use docker for your projects 
+- Use Dockerfile for create image
+- Use docker/start.server.sh for start server in docker
+- Use docker-compose for create application containers
+
+docker-compose
+```
+version: "3"
+
+services:
+  application:
+    container_name: application_example_go
+    image: "lambda-local"
+    volumes: 
+      - .:/var/app
+      - /var/run/docker.sock:/var/run/docker.sock # Use for lambda execute containers
+    ports: 
+      - 3000:3000
+    environment: 
+      - VOLUME_APP=$PWD # Source path project [required]
+      - HOST=0.0.0.0 # Host execute
+      - PORT=3000 # Port execute
 ```

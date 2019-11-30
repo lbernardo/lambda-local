@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"io"
 	"strings"
 
@@ -13,7 +14,22 @@ import (
 	"github.com/lbernardo/lambda-local/model"
 )
 
-func ExecuteDockerLambda(volume string, handler string, runtime string) model.Result {
+func PullImageDocker(runtime string) {
+	fmt.Printf("Prepare image docker")
+	imageName := "lambci/lambda:" + runtime
+	ctx := context.Background()
+	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
+	if err != nil {
+		panic(err)
+	}
+	_, err = cli.ImagePull(ctx, imageName, types.ImagePullOptions{})
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println(" [OK]")
+}
+
+func ExecuteDockerLambda(volume string, handler string, runtime string) (model.Result, string) {
 	var result model.Result
 	var output bytes.Buffer
 
@@ -67,5 +83,5 @@ func ExecuteDockerLambda(volume string, handler string, runtime string) model.Re
 
 	json.Unmarshal([]byte(str), &result)
 
-	return result
+	return result, str
 }

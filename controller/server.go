@@ -46,16 +46,28 @@ func checkPath(event model.HttpEvent, reqPath string, method string) bool {
 	return false
 }
 
+func (se *Server) ContentYaml() {
+	content, err := ReadYaml(se.Yaml)
+	if err != nil {
+		panic(err)
+	}
+	json.Unmarshal(content, &se.JSON)
+}
+
 func (se *Server) StartConfig() {
+	se.ContentYaml()
+	lambda.PullImageDocker(se.JSON.Provider["runtime"])
+
 	http.Handle("/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		content, err := ReadYaml(se.Yaml)
-		if err != nil {
-			panic(err)
-		}
-		json.Unmarshal(content, &se.JSON)
+		se.ContentYaml()
 		for _, functions := range se.JSON.Functions {
 			if checkPath(functions.Events[0].HttpEvent, r.URL.RequestURI(), r.Method) {
-				result := lambda.ExecuteDockerLambda(se.Volume, functions.Handler, se.JSON.Provider["runtime"])
+				result, off := lambda.ExecuteDockerLambda(se.Volume, functions.Handler, se.JSON.Provider["runtime"])
+				if result.StatusCode == 0 {
+					w.WriteHeader(400)
+					fmt.Println(off)
+					return
+				}
 				w.WriteHeader(result.StatusCode)
 				w.Write([]byte(result.Body))
 				return
