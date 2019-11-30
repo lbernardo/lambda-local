@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"os"
 	"strings"
 
 	"github.com/docker/docker/api/types"
@@ -15,18 +16,18 @@ import (
 )
 
 func PullImageDocker(runtime string) {
-	fmt.Printf("Prepare image docker")
+	fmt.Println("Prepare image docker")
 	imageName := "lambci/lambda:" + runtime
 	ctx := context.Background()
 	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
 	if err != nil {
 		panic(err)
 	}
-	_, err = cli.ImagePull(ctx, imageName, types.ImagePullOptions{})
+	reader, err := cli.ImagePull(ctx, imageName, types.ImagePullOptions{})
 	if err != nil {
 		panic(err)
 	}
-	fmt.Println(" [OK]")
+	io.Copy(os.Stdout, reader)
 }
 
 func ExecuteDockerLambda(volume string, handler string, runtime string) (model.Result, string) {
