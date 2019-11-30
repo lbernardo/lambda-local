@@ -1,0 +1,12 @@
+version: "3"
+
+services:
+  application:
+    container_name: application_example_go
+    image: "lambda-local"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    ports: 
+      - 3000:3000
+    environment: 
+      - VOLUME_APP=$PWD
