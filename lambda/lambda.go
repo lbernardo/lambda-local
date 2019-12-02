@@ -81,6 +81,7 @@ func ExecuteDockerLambda(volume string, handler string, runtime string) (model.R
 	str = strings.ReplaceAll(str, "\x00", "")
 	str = strings.ReplaceAll(str, "J{", "{")
 	str = strings.ReplaceAll(str, "\n", "")
+	str = strings.ReplaceAll(str, "�", "")
 
 	json.Unmarshal([]byte(str), &result)
 
