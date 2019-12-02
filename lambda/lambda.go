@@ -7,11 +7,11 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"strings"
 
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/client"
+	"github.com/docker/docker/pkg/stdcopy"
 	"github.com/lbernardo/lambda-local/model"
 )
 
@@ -74,16 +74,13 @@ func ExecuteDockerLambda(volume string, handler string, runtime string) (model.R
 		panic(err)
 	}
 
-	io.Copy(&output, reader)
+	stdcopy.StdCopy(&output, os.Stderr, reader)
 
 	str := output.String()
-	str = strings.ReplaceAll(str, "\x01", "")
-	str = strings.ReplaceAll(str, "\x00", "")
-	str = strings.ReplaceAll(str, "J{", "{")
-	str = strings.ReplaceAll(str, "\n", "")
-	str = strings.ReplaceAll(str, "�", "")
-
-	json.Unmarshal([]byte(str), &result)
+	err = json.Unmarshal([]byte(str), &result)
+	if err != nil {
+		fmt.Println(err)
+	}
 
 	return result, str
 }
