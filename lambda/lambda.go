@@ -30,9 +30,12 @@ func PullImageDocker(runtime string) {
 	io.Copy(os.Stdout, reader)
 }
 
-func ExecuteDockerLambda(volume string, handler string, runtime string) (model.Result, string) {
+func ExecuteDockerLambda(volume string, handler string, runtime string, body io.ReadCloser) (model.Result, string) {
 	var result model.Result
 	var output bytes.Buffer
+	buf := new(bytes.Buffer)
+	buf.ReadFrom(body)
+	bodyStr := buf.String()
 
 	imageName := "lambci/lambda:" + runtime
 
@@ -42,9 +45,13 @@ func ExecuteDockerLambda(volume string, handler string, runtime string) (model.R
 		panic(err)
 	}
 
+	var executeCommand []string
+	executeCommand = append(executeCommand, handler)
+	executeCommand = append(executeCommand, bodyStr)
+
 	resp, err := cli.ContainerCreate(ctx, &container.Config{
 		Image: imageName,
-		Cmd:   []string{handler},
+		Cmd:   executeCommand,
 	}, &container.HostConfig{
 		Binds: []string{volume + ":/var/task"},
 	}, nil, "")

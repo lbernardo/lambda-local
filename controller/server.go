@@ -62,7 +62,7 @@ func (se *Server) StartConfig() {
 		se.ContentYaml()
 		for _, functions := range se.JSON.Functions {
 			if checkPath(functions.Events[0].HttpEvent, r.URL.RequestURI(), r.Method) {
-				result, off := lambda.ExecuteDockerLambda(se.Volume, functions.Handler, se.JSON.Provider["runtime"])
+				result, off := lambda.ExecuteDockerLambda(se.Volume, functions.Handler, se.JSON.Provider["runtime"], r.Body)
 				fmt.Println(result)
 				if result.StatusCode == 0 {
 					w.WriteHeader(400)
