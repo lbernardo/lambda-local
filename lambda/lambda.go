@@ -11,6 +11,7 @@ import (
 
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
+	"github.com/docker/docker/api/types/network"
 	"github.com/docker/docker/client"
 	"github.com/docker/docker/pkg/stdcopy"
 	"github.com/lbernardo/lambda-local/model"
@@ -35,7 +36,7 @@ func PullImageDocker(runtime string) {
 	io.Copy(os.Stdout, reader)
 }
 
-func ExecuteDockerLambda(volume string, handler string, runtime string, body io.ReadCloser) (model.Result, string) {
+func ExecuteDockerLambda(volume string, net string, handler string, runtime string, body io.ReadCloser) (model.Result, string) {
 	var result model.Result
 	var output bytes.Buffer
 	var contentRequest ContentRequest
@@ -61,12 +62,21 @@ func ExecuteDockerLambda(volume string, handler string, runtime string, body io.
 	executeCommand = append(executeCommand, handler)
 	executeCommand = append(executeCommand, string(jsonRequest))
 
+	// Network config
+	networkingConfig := &network.NetworkingConfig{}
+
+	if net != "" {
+		networkingConfig.EndpointsConfig = map[string]*network.EndpointSettings{
+			net: &network.EndpointSettings{},
+		}
+	}
+
 	resp, err := cli.ContainerCreate(ctx, &container.Config{
 		Image: imageName,
 		Cmd:   executeCommand,
 	}, &container.HostConfig{
 		Binds: []string{volume + ":/var/task"},
-	}, nil, "")
+	}, networkingConfig, "")
 	if err != nil {
 		panic(err)
 	}
@@ -88,6 +98,7 @@ func ExecuteDockerLambda(volume string, handler string, runtime string, body io.
 
 	reader, err := cli.ContainerLogs(ctx, resp.ID, types.ContainerLogsOptions{
 		ShowStdout: true,
+		ShowStderr: true,
 	})
 	if err != nil {
 		panic(err)

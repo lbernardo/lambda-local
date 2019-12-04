@@ -13,11 +13,12 @@ import (
 )
 
 type Server struct {
-	Host   string
-	Port   string
-	Yaml   string
-	Volume string
-	JSON   model.Serverless
+	Host    string
+	Port    string
+	Yaml    string
+	Volume  string
+	Network string
+	JSON    model.Serverless
 }
 
 func checkPath(event model.HttpEvent, reqPath string, method string) bool {
@@ -62,7 +63,7 @@ func (se *Server) StartConfig() {
 		se.ContentYaml()
 		for _, functions := range se.JSON.Functions {
 			if checkPath(functions.Events[0].HttpEvent, r.URL.RequestURI(), r.Method) {
-				result, off := lambda.ExecuteDockerLambda(se.Volume, functions.Handler, se.JSON.Provider["runtime"], r.Body)
+				result, off := lambda.ExecuteDockerLambda(se.Volume, se.Network, functions.Handler, se.JSON.Provider["runtime"], r.Body)
 				if result.StatusCode == 0 {
 					w.WriteHeader(400)
 					fmt.Println(off)
