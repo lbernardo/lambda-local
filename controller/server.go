@@ -63,13 +63,15 @@ func (se *Server) StartConfig() {
 		for _, functions := range se.JSON.Functions {
 			if checkPath(functions.Events[0].HttpEvent, r.URL.RequestURI(), r.Method) {
 				result, off := lambda.ExecuteDockerLambda(se.Volume, functions.Handler, se.JSON.Provider["runtime"], r.Body)
-				fmt.Println(result)
 				if result.StatusCode == 0 {
 					w.WriteHeader(400)
 					fmt.Println(off)
 					return
 				}
-				w.WriteHeader(result.StatusCode)
+
+				for key, val := range result.Headers {
+					w.Header().Set(key, val)
+				}
 				w.Write([]byte(result.Body))
 				return
 			}
