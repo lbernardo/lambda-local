@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"strings"
 
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
@@ -14,6 +15,10 @@ import (
 	"github.com/docker/docker/pkg/stdcopy"
 	"github.com/lbernardo/lambda-local/model"
 )
+
+type ContentRequest struct {
+	Body string `json:"body"`
+}
 
 func PullImageDocker(runtime string) {
 	fmt.Println("Prepare image docker")
@@ -33,6 +38,7 @@ func PullImageDocker(runtime string) {
 func ExecuteDockerLambda(volume string, handler string, runtime string, body io.ReadCloser) (model.Result, string) {
 	var result model.Result
 	var output bytes.Buffer
+	var contentRequest ContentRequest
 	buf := new(bytes.Buffer)
 	buf.ReadFrom(body)
 	bodyStr := buf.String()
@@ -45,9 +51,15 @@ func ExecuteDockerLambda(volume string, handler string, runtime string, body io.
 		panic(err)
 	}
 
+	bodyStr = strings.ReplaceAll(bodyStr, "\t", "")
+	bodyStr = strings.ReplaceAll(bodyStr, "\n", "")
+	contentRequest.Body = bodyStr
+
+	jsonRequest, _ := json.Marshal(contentRequest)
+
 	var executeCommand []string
 	executeCommand = append(executeCommand, handler)
-	executeCommand = append(executeCommand, bodyStr)
+	executeCommand = append(executeCommand, string(jsonRequest))
 
 	resp, err := cli.ContainerCreate(ctx, &container.Config{
 		Image: imageName,
