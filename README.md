@@ -61,6 +61,7 @@ Flags:
       --host string     host usage [default 0.0.0.0] (default "0.0.0.0")
       --port string     port usage [default 3000] (default "3000")
       --volume string   Docker volume mount execution [required] [ [ex: --volume $PWD]
+      --network string  Set network name usage
       --yaml string     File yaml serverless [default serverless.yml]
 ```
 
