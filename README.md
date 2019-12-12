@@ -12,6 +12,7 @@ Usage:
 Available Commands:
   help        Help about any command
   start       Start local functions lambda
+  endpoints   List endpoints functions lambda
 
 Flags:
   -h, --help   help for lambda-local

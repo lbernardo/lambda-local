@@ -39,6 +39,14 @@ func ExecuteCmdStart(cmd *cobra.Command, args []string) {
 		Volume:  Volume,
 		Network: Network,
 	}
+	ep := controller.EndpointsController{
+		Host: Host,
+		Port: Port,
+		Yaml: Yaml,
+	}
 	se.StartConfig()
+
+	ep.ListEndpoints()
+
 	se.StartServer()
 }
