@@ -18,7 +18,8 @@ import (
 )
 
 type ContentRequest struct {
-	Body string `json:"body"`
+	Body           string            `json:"body"`
+	PathParameters map[string]string `json:"pathparameters"`
 }
 
 func PullImageDocker(runtime string) {
@@ -36,7 +37,7 @@ func PullImageDocker(runtime string) {
 	io.Copy(os.Stdout, reader)
 }
 
-func ExecuteDockerLambda(volume string, net string, handler string, runtime string, body io.ReadCloser) (model.Result, string) {
+func ExecuteDockerLambda(volume string, net string, handler string, runtime string, body io.ReadCloser, parameters map[string]string) (model.Result, string) {
 	var result model.Result
 	var output bytes.Buffer
 	var contentRequest ContentRequest
@@ -55,6 +56,7 @@ func ExecuteDockerLambda(volume string, net string, handler string, runtime stri
 	bodyStr = strings.ReplaceAll(bodyStr, "\t", "")
 	bodyStr = strings.ReplaceAll(bodyStr, "\n", "")
 	contentRequest.Body = bodyStr
+	contentRequest.PathParameters = parameters
 
 	jsonRequest, _ := json.Marshal(contentRequest)
 

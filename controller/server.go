@@ -21,30 +21,51 @@ type Server struct {
 	JSON    model.Serverless
 }
 
-func checkPath(event model.HttpEvent, reqPath string, method string) bool {
+var strReg = "{[a-z0-9A-Z-]+}"
+
+const varsKey int = iota
+
+func checkPath(event model.HttpEvent, reqPath string, method string) (bool, map[string]string) {
+	parameters := map[string]string{}
 	emethod := strings.ToUpper(event.Method)
 
 	event.Path = strings.ReplaceAll("/"+event.Path, "//", "/")
 
 	if emethod != method {
-		return false
+		return false, parameters
 	}
 
 	if event.Path == reqPath {
-		return true
+		return true, parameters
 	}
 
-	match, _ := regexp.MatchString("{[a-z0-9A-Z-]+}", event.Path)
+	match, _ := regexp.MatchString(strReg, event.Path)
 	if match == true {
-		reg, _ := regexp.Compile("{[a-z0-9A-Z-]+}")
+		reg, _ := regexp.Compile(strReg)
+
 		ep := reg.ReplaceAllString(event.Path, "[a-z0-9A-Z-]+")
+		p := strings.ReplaceAll(ep, "[a-z0-9A-Z-]+", "")
+
 		match, _ = regexp.MatchString(ep, reqPath)
 		if match == true {
-			return true
+			reg2, _ := regexp.Compile("[a-z0-9A-Z-]+")
+			params := reg.FindStringSubmatch(event.Path)
+			m := strings.ReplaceAll(reqPath, p, "")
+			values := reg2.FindStringSubmatch(m)
+			var value string
+
+			for i, param := range params {
+				value = values[i]
+				param = strings.ReplaceAll(param, "{", "")
+				param = strings.ReplaceAll(param, "}", "")
+				parameters[param] = value
+			}
+
+			return true, parameters
 		}
 	}
 
-	return false
+	return false, parameters
 }
 
 func (se *Server) ContentYaml() {
@@ -62,8 +83,9 @@ func (se *Server) StartConfig() {
 	http.Handle("/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		se.ContentYaml()
 		for _, functions := range se.JSON.Functions {
-			if checkPath(functions.Events[0].HttpEvent, r.URL.RequestURI(), r.Method) {
-				result, off := lambda.ExecuteDockerLambda(se.Volume, se.Network, functions.Handler, se.JSON.Provider["runtime"], r.Body)
+			check, parameters := checkPath(functions.Events[0].HttpEvent, r.URL.RequestURI(), r.Method)
+			if check {
+				result, off := lambda.ExecuteDockerLambda(se.Volume, se.Network, functions.Handler, se.JSON.Provider["runtime"], r.Body, parameters)
 				if result.StatusCode == 0 {
 					w.WriteHeader(400)
 					fmt.Println(off)
