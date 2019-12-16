@@ -95,6 +95,7 @@ func (se *Server) StartConfig() {
 				for key, val := range result.Headers {
 					w.Header().Set(key, val)
 				}
+				w.WriteHeader(result.StatusCode)
 				w.Write([]byte(result.Body))
 				return
 			}
