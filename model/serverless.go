@@ -1,8 +1,9 @@
 package model
 
 type Serverless struct {
-	Functions map[string]Functions `json:"functions"`
-	Provider  map[string]string    `json:"provider"`
+	Functions   map[string]Functions `json:"functions"`
+	Provider    map[string]string    `json:"provider"`
+	Environment map[string]string    `json:"environment"`
 }
 
 type Functions struct {

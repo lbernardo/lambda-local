@@ -4,6 +4,10 @@ provider:
   name: aws
   runtime: go1.x
 
+environment:
+  DATABASE: "mydatabase"
+  TABLE_NAME: table-${opt:stage, self:provider.stage}
+
 functions:
   hello:
     handler: bin/hello

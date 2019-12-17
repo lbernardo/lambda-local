@@ -37,15 +37,24 @@ func PullImageDocker(runtime string) {
 	io.Copy(os.Stdout, reader)
 }
 
-func ExecuteDockerLambda(volume string, net string, handler string, runtime string, body io.ReadCloser, parameters map[string]string) (model.Result, string) {
+func ReplaceEnvironment(env string) string {
+	return strings.ReplaceAll(env, "${opt:stage, self:provider.stage}", "dev")
+}
+
+func ExecuteDockerLambda(volume string, net string, handler string, runtime string, environment map[string]string, body io.ReadCloser, parameters map[string]string) (model.Result, string) {
 	var result model.Result
 	var output bytes.Buffer
 	var contentRequest ContentRequest
 	buf := new(bytes.Buffer)
 	buf.ReadFrom(body)
 	bodyStr := buf.String()
+	var strEnv []string
 
 	imageName := "lambci/lambda:" + runtime
+
+	for n, env := range environment {
+		strEnv = append(strEnv, n+"="+ReplaceEnvironment(env))
+	}
 
 	ctx := context.Background()
 	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
@@ -76,6 +85,7 @@ func ExecuteDockerLambda(volume string, net string, handler string, runtime stri
 	resp, err := cli.ContainerCreate(ctx, &container.Config{
 		Image: imageName,
 		Cmd:   executeCommand,
+		Env:   strEnv,
 	}, &container.HostConfig{
 		Binds: []string{volume + ":/var/task"},
 	}, networkingConfig, "")
