@@ -64,6 +64,7 @@ Flags:
       --volume string   Docker volume mount execution [required] [ [ex: --volume $PWD]
       --network string  Set network name usage
       --yaml string     File yaml serverless [default serverless.yml]
+      --env  string     File for using environment variables other than serverless. Can replace serverless variables
 ```
 
 ** Usage --volume for define source path of project **
