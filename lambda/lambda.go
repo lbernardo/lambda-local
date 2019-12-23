@@ -124,5 +124,7 @@ func ExecuteDockerLambda(volume string, net string, handler string, runtime stri
 		fmt.Println(err)
 	}
 
+	cli.ContainerRemove(ctx, resp.ID, types.ContainerRemoveOptions{})
+
 	return result, str
 }
