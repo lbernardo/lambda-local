@@ -1,10 +1,12 @@
 package controller
 
 import (
+	"bufio"
 	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 	"regexp"
 	"strings"
 
@@ -13,12 +15,13 @@ import (
 )
 
 type Server struct {
-	Host    string
-	Port    string
-	Yaml    string
-	Volume  string
-	Network string
-	JSON    model.Serverless
+	Host            string
+	Port            string
+	Yaml            string
+	Volume          string
+	Network         string
+	EnvironmentFile string
+	JSON            model.Serverless
 }
 
 var strReg = "{[a-z0-9A-Z-]+}"
@@ -76,12 +79,30 @@ func (se *Server) ContentYaml() {
 	json.Unmarshal(content, &se.JSON)
 }
 
+func (se *Server) ReadEnv() {
+	if se.EnvironmentFile != "" {
+		file, err := os.Open(se.EnvironmentFile)
+		if err != nil {
+			log.Fatal(err)
+		}
+		defer file.Close()
+
+		scanner := bufio.NewScanner(file)
+		for scanner.Scan() {
+			textLine := scanner.Text()
+			envArgs := strings.Split(textLine, "=")
+			se.JSON.Provider.Environment[envArgs[0]] = envArgs[1]
+		}
+	}
+}
+
 func (se *Server) StartConfig() {
 	se.ContentYaml()
 	lambda.PullImageDocker(se.JSON.Provider.Runtime)
 
 	http.Handle("/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		se.ContentYaml()
+		se.ReadEnv()
 		for _, functions := range se.JSON.Functions {
 			check, parameters := checkPath(functions.Events[0].HttpEvent, r.URL.RequestURI(), r.Method)
 			if check {

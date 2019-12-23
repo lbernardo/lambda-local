@@ -9,7 +9,7 @@ import (
 
 func HandleRequest(request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
 	return events.APIGatewayProxyResponse{
-		Body:       "Hello:" + os.Getenv("DATABASE") + os.Getenv("TABLE_NAME"),
+		Body:       "Hello:" + os.Getenv("DATABASE") + " - " + os.Getenv("TABLE_NAME") + " - " + os.Getenv("TEST_ENV"),
 		StatusCode: 200,
 	}, nil
 }
