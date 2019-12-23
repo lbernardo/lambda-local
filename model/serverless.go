@@ -1,9 +1,8 @@
 package model
 
 type Serverless struct {
-	Functions   map[string]Functions `json:"functions"`
-	Provider    map[string]string    `json:"provider"`
-	Environment map[string]string    `json:"environment"`
+	Functions map[string]Functions `json:"functions"`
+	Provider  Provider             `json:"provider"`
 }
 
 type Functions struct {
@@ -18,4 +17,10 @@ type Event struct {
 type HttpEvent struct {
 	Method string `json:"method"`
 	Path   string `json:"path"`
+}
+
+type Provider struct {
+	Environment map[string]string `json:"environment"`
+	Name        string            `json:"name"`
+	Runtime     string            `json:"runtime"`
 }

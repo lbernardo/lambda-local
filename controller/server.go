@@ -78,14 +78,14 @@ func (se *Server) ContentYaml() {
 
 func (se *Server) StartConfig() {
 	se.ContentYaml()
-	lambda.PullImageDocker(se.JSON.Provider["runtime"])
+	lambda.PullImageDocker(se.JSON.Provider.Runtime)
 
 	http.Handle("/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		se.ContentYaml()
 		for _, functions := range se.JSON.Functions {
 			check, parameters := checkPath(functions.Events[0].HttpEvent, r.URL.RequestURI(), r.Method)
 			if check {
-				result, off := lambda.ExecuteDockerLambda(se.Volume, se.Network, functions.Handler, se.JSON.Provider["runtime"], se.JSON.Environment, r.Body, parameters)
+				result, off := lambda.ExecuteDockerLambda(se.Volume, se.Network, functions.Handler, se.JSON.Provider.Runtime, se.JSON.Provider.Environment, r.Body, parameters)
 				if result.StatusCode == 0 {
 					w.WriteHeader(400)
 					fmt.Println(off)
