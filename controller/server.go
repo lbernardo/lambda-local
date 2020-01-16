@@ -80,8 +80,9 @@ func (se *Server) ContentYaml() {
 }
 
 func (se *Server) ReadEnv() {
+	se.JSON.Provider.Environment = make(map[string]string, 0)
 	if se.EnvironmentFile != "" {
-		file, err := os.Open(se.EnvironmentFile)
+		file, err := os.Open(".local.env")
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -90,6 +91,9 @@ func (se *Server) ReadEnv() {
 		scanner := bufio.NewScanner(file)
 		for scanner.Scan() {
 			textLine := scanner.Text()
+			if len(textLine) <= 0 {
+				continue
+			}
 			envArgs := strings.Split(textLine, "=")
 			se.JSON.Provider.Environment[envArgs[0]] = envArgs[1]
 		}
