@@ -40,11 +40,12 @@ func MapServerlessFileIncludes(file string) (map[string]interface{}, error) {
 	for i, v := range contentMap {
 		s, ok := v.(string)
 		if !ok {
+			contentMap[i] = v
 			continue
 		}
 		result := r.FindAllString(s, -1)
 		if len(result) <= 0 {
-			contentMap[i] = result
+			contentMap[i] = s
 			continue
 		}
 		contentMap[i], err = processFiles(result)
