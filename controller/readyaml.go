@@ -56,6 +56,7 @@ func MapServerlessFileIncludes(file string) (map[string]interface{}, error) {
 }
 
 func processFiles(files []string) (content map[string]interface{}, err error) {
+	content = make(map[string]interface{}, 0)
 	for _, file := range files {
 		file = strings.Replace(file, "${file(", "", -1)
 		file = strings.Replace(file, ")}", "", -1)
