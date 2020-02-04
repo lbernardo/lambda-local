@@ -12,11 +12,11 @@ functions:
     handler: bin/hello
     events:
       - http:
-          path: hello
+          path: hello/{id}
           method: get
   world:
     handler: bin/world
     events:
       - http:
-          path: world
+          path: /world
           method: get
