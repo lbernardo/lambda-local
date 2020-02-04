@@ -53,21 +53,26 @@ func (se *Server) ReadEnv() {
 	}
 }
 
-func (se *Server) StartConfig() {
-	se.ContentYaml()
-	se.ReadEnv()
+func (se *Server) executeHandler(handler string, ) {
+
+}
+
+func (se *Server) StartConfig() *mux.Router {
 	lambda.PullImageDocker(se.JSON.Provider.Runtime)
 
 	route := mux.NewRouter()
 
 	for _, functions := range se.JSON.Functions {
-		fmt.Println(functions.Events[0].HttpEvent.Path)
-		route.HandleFunc("/"+functions.Events[0].HttpEvent.Path, func(w http.ResponseWriter, r *http.Request) {
-			parameters := mux.Vars(r)
-			fmt.Println(parameters)
-			fmt.Println(functions.Events[0].HttpEvent.Path)
+		path := "/" + functions.Events[0].HttpEvent.Path
+		method := functions.Events[0].HttpEvent.Method
+		function := functions.Handler
 
-			result, off := lambda.ExecuteDockerLambda(se.Volume, se.Network, functions.Handler, se.JSON.Provider.Runtime, se.JSON.Provider.Environment, r.Body, parameters)
+		path = strings.ReplaceAll(path,"//","/")
+
+		fmt.Printf("http://%v:%v%v [%v]\n\n", se.Host, se.Port, path, strings.ToUpper(method))
+		fff := func(w http.ResponseWriter, r *http.Request) {
+			parameters := mux.Vars(r)
+			result, off := lambda.ExecuteDockerLambda(se.Volume, se.Network, function, se.JSON.Provider.Runtime, se.JSON.Provider.Environment, r.Body, parameters)
 			if result.StatusCode == 0 {
 				w.WriteHeader(400)
 				fmt.Println(off)
@@ -80,13 +85,17 @@ func (se *Server) StartConfig() {
 			w.WriteHeader(result.StatusCode)
 			w.Write([]byte(result.Body))
 			return
-		}).Methods(functions.Events[0].HttpEvent.Method)
+		}
+		route.HandleFunc(path, fff).Methods(method)
 	}
 
-	http.Handle("/", route)
+	return route
 }
 
 func (se *Server) StartServer() {
+	se.ContentYaml()
+	se.ReadEnv()
+
 	fmt.Printf("Start server API Gateway -> lambda %v:%v\n", se.Host, se.Port)
-	log.Fatal(http.ListenAndServe(se.Host+":"+se.Port, nil))
+	log.Fatal(http.ListenAndServe(se.Host+":"+se.Port, se.StartConfig()))
 }
