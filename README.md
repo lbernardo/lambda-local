@@ -1,4 +1,8 @@
 # lambda-local
+
+> :warning: **[Decrepted] Use https://github.com/lbernardo/aws-local**
+
+
 Execute and test local Lambda functions integrate serverless framework
 
 
